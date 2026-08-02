@@ -57,19 +57,32 @@ gives you a single-machine stand-in that behaves like a real cluster, so
 every command you learn here works unchanged against a real production
 cluster later.
 
-### Before you start
+> **Note:** this tutorial uses Minikube's **Podman** driver instead of
+> Docker. Minikube's own docs mark the Podman driver as **experimental** —
+> it works well, but if you hit a driver-specific wall the docs don't cover,
+> falling back to `--driver=docker` is always the safe escape hatch.
 
-Confirm Docker is actually running first — Minikube's Docker driver depends
-on it, and if Docker is down, `minikube start` will hang or fail with a
-confusing error.
+### Install Podman and start its VM
+
+Unlike Docker Desktop, Podman on macOS doesn't run a background daemon by
+default — it launches a small Linux VM on demand called a **machine**.
+You create it once, then start/stop it like any other local service.
 
 ```bash
-docker ps
+brew install podman
+podman machine init --cpus 2 --memory 2048 --disk-size 20
+podman machine start
 ```
 
-You should see a table header (`CONTAINER ID   IMAGE   ...`), even if it's
-empty. If this errors out, start Docker Desktop and wait for it to say
-"Docker is running" before continuing.
+Confirm it's alive:
+
+```bash
+podman ps
+```
+
+You should see a table header (`CONTAINER ID  IMAGE  COMMAND  ...`), even if
+it's empty. If this errors out, run `podman machine start` again before
+continuing — everything downstream depends on this VM being up.
 
 ### Install Minikube and kubectl
 
@@ -88,12 +101,14 @@ kubectl version --client
 ### Start your cluster
 
 ```bash
-minikube start --driver=docker
+minikube start --driver=podman --container-runtime=containerd
 ```
 
-This downloads a Kubernetes node image (first run only — can take a few
-minutes) and boots a single-node cluster inside a Docker container on your
-machine.
+`--container-runtime=containerd` matters here: Podman's other supported
+runtime option (CRI-O) isn't available on macOS, so leaving this off can
+produce a confusing `ImageInspectError`. This downloads a Kubernetes node
+image (first run only — can take a few minutes) and boots a single-node
+cluster inside your Podman machine.
 
 **Expected output (last line):** `Done! kubectl is now configured to use "minikube" cluster...`
 
@@ -122,8 +137,10 @@ you) and the cluster is healthy.
 - `kubectl get nodes` shows one node with `STATUS: Ready`
 
 If you closed your laptop and came back later and this checkpoint fails,
-run `minikube start` again — it's safe to re-run, it just resumes the
-existing cluster instead of creating a new one.
+check `podman machine start` first (the VM stops when your laptop sleeps
+or restarts), then run `minikube start --driver=podman --container-runtime=containerd`
+again — it's safe to re-run, it just resumes the existing cluster instead
+of creating a new one.
 
 *Deeper reading: [fundamentals-notes.md §1–2](./docs/kubernetes-fundamentals-notes.md#1-why-kubernetes) on why Kubernetes exists and what each control-plane piece does.*
 
@@ -410,8 +427,8 @@ number is your NodePort.
 
 ### Access it from your browser
 
-Minikube runs inside Docker, not directly on your machine, so `localhost`
-won't reach it — you need Minikube's own IP:
+Minikube runs inside your Podman machine's VM, not directly on your
+machine, so `localhost` won't reach it — you need Minikube's own IP:
 
 ```bash
 minikube service hello-service --url

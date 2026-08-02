@@ -20,14 +20,17 @@ time.
 
 ## Prerequisites
 
-Comfortable with Docker and the command line. No prior Kubernetes knowledge
-assumed — `TUTORIAL.md` explains every concept before using it.
+Comfortable with containers (Docker or Podman) and the command line. No
+prior Kubernetes knowledge assumed — `TUTORIAL.md` explains every concept
+before using it. Runs on Minikube's Podman driver — `TUTORIAL.md` Module 0
+covers installing Podman itself.
 
 ## Quick start
 
 ```bash
-brew install minikube
-minikube start --driver=docker
+brew install podman minikube
+podman machine init && podman machine start
+minikube start --driver=podman --container-runtime=containerd
 kubectl get nodes
 ```
 
