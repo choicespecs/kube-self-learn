@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+
+# Presentation: only the finished deck is a repo deliverable. Everything
+# else (build scripts, source markdown, thumbnails, node_modules) stays
+# local only, needed just to regenerate the deck.
+docs/presentations/*/*
+!docs/presentations/*/*.pptx
