@@ -6,3 +6,4 @@ node_modules/
 # local only, needed just to regenerate the deck.
 docs/presentations/*/*
 !docs/presentations/*/*.pptx
+docs/presentations/*/~$*.pptx
