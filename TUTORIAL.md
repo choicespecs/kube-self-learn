@@ -253,6 +253,15 @@ tab and press `Ctrl+C` to stop the port-forward before continuing.
 
 ### The important part: kill it and watch
 
+One thing to be precise about before you run this: `kubectl delete pod`
+deletes the **live object** running in the cluster. It does **not** touch
+`pod.yaml` — that file just sits on your laptop, completely unaffected,
+before and after. So this experiment is really testing one specific
+question: *does the mere existence of `pod.yaml` on disk cause Kubernetes
+to keep recreating the Pod if it's deleted?* Watch closely — the answer is
+about to surprise you if you're picturing the file as some kind of live
+blueprint the cluster keeps checking.
+
 ```bash
 kubectl delete pod hello-pod
 kubectl get pods
@@ -268,8 +277,12 @@ remembers "there's supposed to be a Pod named `hello-pod`." The Pod is now
 just a record sitting in etcd with no controller attached to it — nothing
 in the cluster is asking "does `hello-pod` still exist?" on a loop, so
 nothing notices when the answer becomes "no." `pod.yaml` on your laptop is
-inert; it has no live connection to the cluster. The only way to get the
-Pod back is to run `kubectl apply -f pod.yaml` yourself, again, by hand.
+completely fine, untouched, still sitting right where you saved it — but
+that no longer matters, because nothing has an open connection between
+that file and the cluster. A file on disk and an object in etcd are two
+separate things, linked only for the split second `apply` runs. The only
+way to get the Pod back is to run `kubectl apply -f pod.yaml` yourself,
+again, by hand.
 
 Hold onto that gap; it's the exact problem Module 2 solves. A Deployment
 doesn't just create a Pod — it also creates a controller (a ReplicaSet)
