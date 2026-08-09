@@ -157,8 +157,12 @@ Deployments make sense later, instead of feeling like unexplained magic.
 
 The other thing this module teaches is **declarative vs. imperative**:
 instead of telling Kubernetes *how* to do something step by step, you write
-a file describing the *end state you want*, and Kubernetes continuously
-works to make reality match it.
+a file describing the *end state you want*. Kubernetes reads that file and
+moves the cluster to match it — **once**, at the moment you run `kubectl
+apply`. That's not the same as continuously enforcing it forever. Whether
+anything keeps re-matching the file after that first apply depends entirely
+on *what kind of object* you created — and that distinction is the whole
+point of this module.
 
 ### Write your first manifest
 
@@ -197,9 +201,14 @@ spec:
 kubectl apply -f pod.yaml
 ```
 
-`apply` is the declarative command: "make the cluster match this file." Run
-it again right now with no changes — it will say `unchanged`, because
-reality already matches the file.
+`apply` is the declarative command: "make the cluster match this file" —
+right now, one time. It reads `pod.yaml`, compares it to what's already in
+the cluster, patches the difference, then **exits**. From this point on,
+`pod.yaml` is just a file sitting on your laptop; nothing is watching it,
+and nothing is watching the Pod it created either. Run the same command
+again right now with no changes — it will say `unchanged`, because reality
+already matches the file. That's a fresh one-time comparison triggered by
+you running the command, not proof of an ongoing watch.
 
 ### Inspect it
 
@@ -251,9 +260,21 @@ kubectl get pods
 
 **Expected output:** `No resources found in default namespace.`
 
-Notice: it did **not** come back. A bare Pod has no supervisor — once it's
-gone, it's gone. Hold onto that observation; it's the exact problem Module 2
-solves.
+Notice: it did **not** come back. This is the part that trips people up —
+*you did define this Pod in `pod.yaml`, so why doesn't Kubernetes just
+recreate it from that file?* Because `apply` already did its one job: read
+`pod.yaml`, create the Pod, exit. It didn't leave anything behind that
+remembers "there's supposed to be a Pod named `hello-pod`." The Pod is now
+just a record sitting in etcd with no controller attached to it — nothing
+in the cluster is asking "does `hello-pod` still exist?" on a loop, so
+nothing notices when the answer becomes "no." `pod.yaml` on your laptop is
+inert; it has no live connection to the cluster. The only way to get the
+Pod back is to run `kubectl apply -f pod.yaml` yourself, again, by hand.
+
+Hold onto that gap; it's the exact problem Module 2 solves. A Deployment
+doesn't just create a Pod — it also creates a controller (a ReplicaSet)
+whose entire job *is* to keep asking that question forever, in the
+background, without you running anything.
 
 ### ✅ Checkpoint
 
